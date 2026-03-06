@@ -19,6 +19,7 @@ func main() {
 	case "update":
 	case "delete":
 	case "list":
+		cli.GetTasks()
 	case "mark-in-progress":
 	case "mark-done":
 	}

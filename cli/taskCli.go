@@ -75,3 +75,26 @@ func AddTask(description Description) bool {
 	fmt.Printf("Task added successfully (ID: %d)\n", tasks.Tasks[0].Id)
 	return true
 }
+
+func GetTasks() {
+	data, err := os.ReadFile(FILE_NAME)
+	if err != nil {
+		fmt.Println(ERROR_OPENING_OR_CREATING_FILE)
+	}
+
+	var tasks TasksFile
+	err = json.Unmarshal(data, &tasks)
+	if err != nil {
+		fmt.Println(ERROR_READING_FILE, err)
+	}
+
+	for _, task := range tasks.Tasks {
+		fmt.Printf(
+			"Задача:\n - id=%d;\n - описание=\"%s\";\n - статус=%s;\n - время создания=%s;\n - последнее обновление=%s",
+			task.Id,
+			task.Description,
+			task.TaskStatus,
+			task.CreatedAt,
+			task.UpdatedAt)
+	}
+}
