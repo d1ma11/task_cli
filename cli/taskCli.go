@@ -38,57 +38,64 @@ var Statuses = TaskStatuses{
 }
 
 const FILE_NAME = "tasks.json"
-const ERROR_OPENING_OR_CREATING_FILE = "Error creating file: "
+const ERROR_OPENING_FILE = "Error opening file: "
+const ERROR_CREATING_FILE = "Error creating file: "
 const ERROR_MARSHALLING = "Error marshalling JSON: "
 const ERROR_WRITING_TO_FILE = "Error writing to file: "
-const ERROR_READING_FILE = "Error reading from file: "
+const ERROR_FILE_INTERACTION = "Error reading from file: "
 
 func AddTask(description Description) bool {
-	f, err := os.OpenFile(FILE_NAME, os.O_CREATE|os.O_APPEND, os.ModePerm)
+	// Чтение файла
+	file, err := os.OpenFile(FILE_NAME, os.O_CREATE, os.ModePerm)
 	if err != nil {
-		fmt.Println(ERROR_OPENING_OR_CREATING_FILE, err)
-		return false
+		fmt.Println(ERROR_OPENING_FILE, err)
+		file, err = os.Create(FILE_NAME)
+		if err != nil {
+			fmt.Println(ERROR_CREATING_FILE, err)
+			return false
+		}
+		defer file.Close()
 	}
-	defer f.Close()
 
-	tasks := TasksFile{[]Task{
-		{
-			Id:          1,
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
-			Description: description,
-			TaskStatus:  Statuses.Todo,
-		}}}
+	taskList, err := readTasks()
 
-	jsonTask, err := json.MarshalIndent(tasks, "", "\t")
+	// Добавление новой задачи
+	task := Task{
+		Id:          Id(len(taskList) + 1),
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+		Description: description,
+		TaskStatus:  Statuses.Todo,
+	}
+	taskList = append(taskList, task)
+	tasksFile := TasksFile{taskList}
+
+	// Парсинг в JSON
+	jsonTask, err := json.MarshalIndent(tasksFile, "", "  ")
 	if err != nil {
 		fmt.Println(ERROR_MARSHALLING, err)
 		return false
 	}
 
-	_, err = f.Write(jsonTask)
+	// Запись в файл
+	_, err = file.Write(jsonTask)
 	if err != nil {
 		fmt.Println(ERROR_WRITING_TO_FILE, err)
 		return false
 	}
 
-	fmt.Printf("Task added successfully (ID: %d)\n", tasks.Tasks[0].Id)
+	fmt.Printf("Task added successfully (ID: %d)\n", task.Id)
 	return true
 }
 
+// GetTasks получает все задачи независимо от статуса
 func GetTasks() {
-	data, err := os.ReadFile(FILE_NAME)
+	tasks, err := readTasks()
 	if err != nil {
-		fmt.Println(ERROR_OPENING_OR_CREATING_FILE)
+		fmt.Println(ERROR_FILE_INTERACTION, err)
 	}
 
-	var tasks TasksFile
-	err = json.Unmarshal(data, &tasks)
-	if err != nil {
-		fmt.Println(ERROR_READING_FILE, err)
-	}
-
-	for _, task := range tasks.Tasks {
+	for _, task := range tasks {
 		fmt.Printf(
 			"Задача:\n - id=%d;\n - описание=\"%s\";\n - статус=%s;\n - время создания=%s;\n - последнее обновление=%s",
 			task.Id,
@@ -97,4 +104,24 @@ func GetTasks() {
 			task.CreatedAt,
 			task.UpdatedAt)
 	}
+}
+
+// readTasks вспомогательная функция для чтения задач из файла
+func readTasks() ([]Task, error) {
+	data, err := os.ReadFile(FILE_NAME)
+	if err != nil {
+		return nil, err
+	}
+
+	var tasksFile TasksFile
+	err = json.Unmarshal(data, &tasksFile)
+	if err != nil {
+		return nil, err
+	}
+
+	if tasksFile.Tasks == nil {
+		tasksFile.Tasks = []Task{}
+	}
+
+	return tasksFile.Tasks, nil
 }
