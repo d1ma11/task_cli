@@ -37,21 +37,21 @@ var Statuses = TaskStatuses{
 	Done:       "done",
 }
 
-const FILE_NAME = "tasks.json"
-const ERROR_OPENING_FILE = "Error opening file: "
-const ERROR_CREATING_FILE = "Error creating file: "
-const ERROR_MARSHALLING = "Error marshalling JSON: "
-const ERROR_WRITING_TO_FILE = "Error writing to file: "
-const ERROR_FILE_INTERACTION = "Error reading from file: "
+const fileName = "tasks.json"
+const errorOpeningFile = "Error opening file: "
+const errorCreatingFile = "Error creating file: "
+const errorMarshalling = "Error marshalling JSON: "
+const errorWritingToFile = "Error writing to file: "
+const errorFileInteraction = "Error reading from file: "
 
 func AddTask(description Description) bool {
 	// Чтение файла
-	file, err := os.OpenFile(FILE_NAME, os.O_CREATE, os.ModePerm)
+	file, err := os.OpenFile(fileName, os.O_CREATE, os.ModePerm)
 	if err != nil {
-		fmt.Println(ERROR_OPENING_FILE, err)
-		file, err = os.Create(FILE_NAME)
+		fmt.Println(errorOpeningFile, err)
+		file, err = os.Create(fileName)
 		if err != nil {
-			fmt.Println(ERROR_CREATING_FILE, err)
+			fmt.Println(errorCreatingFile, err)
 			return false
 		}
 		defer file.Close()
@@ -73,14 +73,14 @@ func AddTask(description Description) bool {
 	// Парсинг в JSON
 	jsonTask, err := json.MarshalIndent(tasksFile, "", "  ")
 	if err != nil {
-		fmt.Println(ERROR_MARSHALLING, err)
+		fmt.Println(errorMarshalling, err)
 		return false
 	}
 
 	// Запись в файл
 	_, err = file.Write(jsonTask)
 	if err != nil {
-		fmt.Println(ERROR_WRITING_TO_FILE, err)
+		fmt.Println(errorWritingToFile, err)
 		return false
 	}
 
@@ -92,7 +92,7 @@ func AddTask(description Description) bool {
 func GetTasks() {
 	tasks, err := readTasks()
 	if err != nil {
-		fmt.Println(ERROR_FILE_INTERACTION, err)
+		fmt.Println(errorFileInteraction, err)
 	}
 
 	for _, task := range tasks {
@@ -108,7 +108,7 @@ func GetTasks() {
 
 // readTasks вспомогательная функция для чтения задач из файла
 func readTasks() ([]Task, error) {
-	data, err := os.ReadFile(FILE_NAME)
+	data, err := os.ReadFile(fileName)
 	if err != nil {
 		return nil, err
 	}
