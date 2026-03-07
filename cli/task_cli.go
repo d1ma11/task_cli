@@ -39,25 +39,19 @@ var Statuses = TaskStatuses{
 
 const fileName = "tasks.json"
 const errorOpeningFile = "Error opening file: "
-const errorCreatingFile = "Error creating file: "
 const errorMarshalling = "Error marshalling JSON: "
 const errorWritingToFile = "Error writing to file: "
 const errorFileInteraction = "Error reading from file: "
 
 func AddTask(description Description) bool {
-	// Чтение файла
-	file, err := os.OpenFile(fileName, os.O_CREATE, os.ModePerm)
+	taskList, err := readTasks()
+
 	if err != nil {
-		fmt.Println(errorOpeningFile, err)
-		file, err = os.Create(fileName)
-		if err != nil {
-			fmt.Println(errorCreatingFile, err)
+		if !os.IsNotExist(err) {
+			fmt.Println(errorOpeningFile, err)
 			return false
 		}
-		defer file.Close()
 	}
-
-	taskList, err := readTasks()
 
 	// Добавление новой задачи
 	task := Task{
@@ -78,7 +72,7 @@ func AddTask(description Description) bool {
 	}
 
 	// Запись в файл
-	_, err = file.Write(jsonTask)
+	err = os.WriteFile(fileName, jsonTask, 0644)
 	if err != nil {
 		fmt.Println(errorWritingToFile, err)
 		return false
