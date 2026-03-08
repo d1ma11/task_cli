@@ -41,9 +41,11 @@ const errorReadingFile = "Error reading file: "
 const errorMarshalling = "Error marshalling JSON: "
 const errorWritingToFile = "Error writing to file: "
 const errorFileInteraction = "Error reading from file: "
+const errorNoSuchTaskById = "There is no such task with id: "
+const errorFileNotFount = "File is not found"
 
 func AddTask(description Description) bool {
-	tasksFile := TasksFile{Tasks: make([]Task, 0)}
+	tasksFile := &TasksFile{Tasks: make([]Task, 0)}
 	tasksFile, err := readTasks()
 
 	if err != nil {
@@ -82,6 +84,45 @@ func AddTask(description Description) bool {
 	return true
 }
 
+func UpdateTask(id Id, newDescription Description) bool {
+	tasksFile, err := readTasks()
+
+	if err != nil {
+		if !os.IsNotExist(err) {
+			fmt.Println(errorReadingFile, err)
+			return false
+		}
+		fmt.Println(errorFileNotFount)
+		return false
+	}
+
+	task := tasksFile.getTaskById(id)
+
+	if task == nil {
+		fmt.Println(errorNoSuchTaskById, id)
+		return false
+	}
+
+	task.Description = newDescription
+	task.UpdatedAt = util.UpdatedAt(time.Now())
+
+	// Парсинг в JSON
+	jsonTask, err := json.MarshalIndent(tasksFile, "", "  ")
+	if err != nil {
+		fmt.Println(errorMarshalling, err)
+		return false
+	}
+
+	// Запись в файл
+	err = os.WriteFile(fileName, jsonTask, 0644)
+	if err != nil {
+		fmt.Println(errorWritingToFile, err)
+		return false
+	}
+	fmt.Printf("Task updated successfully (ID: %d)\n", task.Id)
+	return true
+}
+
 // GetTasks получает все задачи независимо от статуса
 func GetTasks() {
 	tasks, err := readTasks()
@@ -102,16 +143,16 @@ func GetTasks() {
 }
 
 // readTasks вспомогательная функция для чтения задач из файла.
-func readTasks() (TasksFile, error) {
+func readTasks() (*TasksFile, error) {
 	data, err := os.ReadFile(fileName)
 	if err != nil {
-		return TasksFile{}, err
+		return nil, err
 	}
 
-	var tasksFile TasksFile
+	var tasksFile *TasksFile
 	err = json.Unmarshal(data, &tasksFile)
 	if err != nil {
-		return TasksFile{}, err
+		return nil, err
 	}
 
 	if tasksFile.Tasks == nil {
@@ -130,4 +171,14 @@ func (taskList *TasksFile) getMaxId() Id {
 		}
 	}
 	return maxId
+}
+
+// getTaskById вспомогательная функция для нахождения задачи по его идентификатору
+func (taskList *TasksFile) getTaskById(id Id) *Task {
+	for i := 0; i < len(taskList.Tasks); i++ {
+		if taskList.Tasks[i].Id == id {
+			return &taskList.Tasks[i]
+		}
+	}
+	return nil
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"strconv"
 	"task_cli/cli"
 )
 
@@ -17,6 +18,8 @@ func main() {
 	case "add":
 		cli.AddTask(cli.Description(args[1]))
 	case "update":
+		id, _ := strconv.Atoi(args[1])
+		cli.UpdateTask(cli.Id(id), cli.Description(args[2]))
 	case "delete":
 	case "list":
 		cli.GetTasks()
