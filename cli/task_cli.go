@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"task_cli/util"
 	"time"
 )
 
@@ -12,17 +13,15 @@ type TasksFile struct {
 }
 
 type Task struct {
-	Id          Id          `json:"id"`
-	CreatedAt   time.Time   `json:"created_at"`
-	UpdatedAt   time.Time   `json:"updated_at"`
-	Description Description `json:"description"`
-	TaskStatus  TaskStatus  `json:"task_status"`
+	Id          Id             `json:"id"`
+	CreatedAt   util.CreatedAt `json:"created_at"`
+	UpdatedAt   util.UpdatedAt `json:"updated_at"`
+	Description Description    `json:"description"`
+	TaskStatus  TaskStatus     `json:"task_status"`
 }
 
 type Id int
 
-// type CreatedAt time.Time
-// type UpdatedAt time.Time
 type Description string
 type TaskStatus string
 type TaskStatuses struct {
@@ -38,31 +37,32 @@ var Statuses = TaskStatuses{
 }
 
 const fileName = "tasks.json"
-const errorOpeningFile = "Error opening file: "
+const errorReadingFile = "Error reading file: "
 const errorMarshalling = "Error marshalling JSON: "
 const errorWritingToFile = "Error writing to file: "
 const errorFileInteraction = "Error reading from file: "
 
 func AddTask(description Description) bool {
-	taskList, err := readTasks()
+	tasksFile := TasksFile{Tasks: make([]Task, 0)}
+	tasksFile, err := readTasks()
 
 	if err != nil {
 		if !os.IsNotExist(err) {
-			fmt.Println(errorOpeningFile, err)
+			fmt.Println(errorReadingFile, err)
 			return false
 		}
 	}
 
 	// Добавление новой задачи
 	task := Task{
-		Id:          Id(len(taskList) + 1),
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		Id:          tasksFile.getMaxId() + 1,
+		CreatedAt:   util.CreatedAt(time.Now()),
+		UpdatedAt:   util.UpdatedAt(time.Now()),
 		Description: description,
 		TaskStatus:  Statuses.Todo,
 	}
-	taskList = append(taskList, task)
-	tasksFile := TasksFile{taskList}
+
+	tasksFile.Tasks = append(tasksFile.Tasks, task)
 
 	// Парсинг в JSON
 	jsonTask, err := json.MarshalIndent(tasksFile, "", "  ")
@@ -89,33 +89,45 @@ func GetTasks() {
 		fmt.Println(errorFileInteraction, err)
 	}
 
-	for _, task := range tasks {
+	for _, task := range tasks.Tasks {
 		fmt.Printf(
-			"Задача:\n - id=%d;\n - описание=\"%s\";\n - статус=%s;\n - время создания=%s;\n - последнее обновление=%s",
+			"Задача:\n - id=%d;\n - описание=\"%s\";\n - статус=%s;\n - время создания=%s;\n - последнее обновление=%s\n",
 			task.Id,
 			task.Description,
 			task.TaskStatus,
-			task.CreatedAt,
-			task.UpdatedAt)
+			time.Time(task.CreatedAt).Format(time.DateTime),
+			time.Time(task.UpdatedAt).Format(time.DateTime),
+		)
 	}
 }
 
-// readTasks вспомогательная функция для чтения задач из файла
-func readTasks() ([]Task, error) {
+// readTasks вспомогательная функция для чтения задач из файла.
+func readTasks() (TasksFile, error) {
 	data, err := os.ReadFile(fileName)
 	if err != nil {
-		return nil, err
+		return TasksFile{}, err
 	}
 
 	var tasksFile TasksFile
 	err = json.Unmarshal(data, &tasksFile)
 	if err != nil {
-		return nil, err
+		return TasksFile{}, err
 	}
 
 	if tasksFile.Tasks == nil {
 		tasksFile.Tasks = []Task{}
 	}
 
-	return tasksFile.Tasks, nil
+	return tasksFile, nil
+}
+
+// getMaxId вспомогательная функция для нахождения максимального идентификатора в списке задач
+func (taskList *TasksFile) getMaxId() Id {
+	maxId := Id(0)
+	for _, task := range taskList.Tasks {
+		if task.Id > maxId {
+			maxId = task.Id
+		}
+	}
+	return maxId
 }
