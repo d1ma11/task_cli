@@ -26,6 +26,10 @@ func main() {
 	case "list":
 		cli.GetTasks()
 	case "mark-in-progress":
+		id, _ := strconv.Atoi(args[1])
+		cli.MarkInProgress(cli.Id(id))
 	case "mark-done":
+		id, _ := strconv.Atoi(args[1])
+		cli.MarkDone(cli.Id(id))
 	}
 }

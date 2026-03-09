@@ -155,6 +155,14 @@ func DeleteTask(id Id) bool {
 	return true
 }
 
+func MarkInProgress(id Id) bool {
+	return changeTaskStatus(id, Statuses.InProgress)
+}
+
+func MarkDone(id Id) bool {
+	return changeTaskStatus(id, Statuses.Done)
+}
+
 // GetTasks получает все задачи независимо от статуса
 func GetTasks() {
 	tasks, err := readTasks()
@@ -224,4 +232,43 @@ func (taskList *TasksFile) deleteTaskById(id Id) {
 		}
 	}
 	taskList.Tasks = newTaskList
+}
+
+func changeTaskStatus(id Id, newStatus TaskStatus) bool {
+	tasksFile, err := readTasks()
+
+	if err != nil {
+		if !os.IsNotExist(err) {
+			fmt.Println(errorReadingFile, err)
+			return false
+		}
+		fmt.Println(errorFileNotFount)
+		return false
+	}
+
+	task := tasksFile.getTaskById(id)
+
+	if task == nil {
+		fmt.Println(errorNoSuchTaskById, id)
+		return false
+	}
+
+	task.TaskStatus = newStatus
+	task.UpdatedAt = util.UpdatedAt(time.Now())
+
+	// Парсинг в JSON
+	jsonTask, err := json.MarshalIndent(tasksFile, "", "  ")
+	if err != nil {
+		fmt.Println(errorMarshalling, err)
+		return false
+	}
+
+	// Запись в файл
+	err = os.WriteFile(fileName, jsonTask, 0644)
+	if err != nil {
+		fmt.Println(errorWritingToFile, err)
+		return false
+	}
+	fmt.Printf("Task status changed to \"%s\" successfully (ID: %d)\n", newStatus, task.Id)
+	return true
 }
