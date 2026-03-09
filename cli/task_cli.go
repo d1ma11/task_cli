@@ -123,6 +123,38 @@ func UpdateTask(id Id, newDescription Description) bool {
 	return true
 }
 
+func DeleteTask(id Id) bool {
+	tasksFile, err := readTasks()
+
+	if err != nil {
+		if !os.IsNotExist(err) {
+			fmt.Println(errorReadingFile, err)
+			return false
+		}
+		fmt.Println(errorFileNotFount)
+		return false
+	}
+
+	tasksFile.deleteTaskById(id)
+
+	// Парсинг в JSON
+	jsonTask, err := json.MarshalIndent(tasksFile, "", "  ")
+	if err != nil {
+		fmt.Println(errorMarshalling, err)
+		return false
+	}
+
+	// Запись в файл
+	err = os.WriteFile(fileName, jsonTask, 0644)
+	if err != nil {
+		fmt.Println(errorWritingToFile, err)
+		return false
+	}
+
+	fmt.Printf("Task deleted successfully (ID: %d)\n", id)
+	return true
+}
+
 // GetTasks получает все задачи независимо от статуса
 func GetTasks() {
 	tasks, err := readTasks()
@@ -181,4 +213,15 @@ func (taskList *TasksFile) getTaskById(id Id) *Task {
 		}
 	}
 	return nil
+}
+
+// deleteTaskById вспомогательная функция для удаления задачи по его идентификатору
+func (taskList *TasksFile) deleteTaskById(id Id) {
+	newTaskList := make([]Task, 0)
+	for i := 0; i < len(taskList.Tasks); i++ {
+		if taskList.Tasks[i].Id != id {
+			newTaskList = append(newTaskList, taskList.Tasks[i])
+		}
+	}
+	taskList.Tasks = newTaskList
 }

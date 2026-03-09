@@ -21,6 +21,8 @@ func main() {
 		id, _ := strconv.Atoi(args[1])
 		cli.UpdateTask(cli.Id(id), cli.Description(args[2]))
 	case "delete":
+		id, _ := strconv.Atoi(args[1])
+		cli.DeleteTask(cli.Id(id))
 	case "list":
 		cli.GetTasks()
 	case "mark-in-progress":
