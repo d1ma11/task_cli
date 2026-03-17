@@ -24,7 +24,13 @@ func main() {
 		id, _ := strconv.Atoi(args[1])
 		cli.DeleteTask(cli.Id(id))
 	case "list":
-		cli.GetTasks()
+		cli.GetTasks("") // Все задачи
+	case "list-done":
+		cli.GetTasks(cli.Statuses.Done) // Только выполненные
+	case "list-not-done":
+		cli.GetTasks("not-done") // Все, кроме выполненных
+	case "list-in-progress":
+		cli.GetTasks(cli.Statuses.InProgress) // Только в процессе
 	case "mark-in-progress":
 		id, _ := strconv.Atoi(args[1])
 		cli.MarkInProgress(cli.Id(id))

@@ -21,7 +21,6 @@ type Task struct {
 }
 
 type Id int
-
 type Description string
 type TaskStatus string
 type TaskStatuses struct {
@@ -164,21 +163,37 @@ func MarkDone(id Id) bool {
 }
 
 // GetTasks получает все задачи независимо от статуса
-func GetTasks() {
+func GetTasks(status TaskStatus) {
 	tasks, err := readTasks()
 	if err != nil {
 		fmt.Println(errorFileInteraction, err)
+		return
 	}
 
 	for _, task := range tasks.Tasks {
-		fmt.Printf(
-			"Задача:\n - id=%d;\n - описание=\"%s\";\n - статус=%s;\n - время создания=%s;\n - последнее обновление=%s\n",
-			task.Id,
-			task.Description,
-			task.TaskStatus,
-			time.Time(task.CreatedAt).Format(time.DateTime),
-			time.Time(task.UpdatedAt).Format(time.DateTime),
-		)
+		// Определяем, нужно ли показывать задачу
+		shouldShow := false
+		if status == "" {
+			// Пустой статус - показывать все задачи
+			shouldShow = true
+		} else if status == "not-done" {
+			// Все задачи кроме выполненных
+			shouldShow = task.TaskStatus != Statuses.Done
+		} else {
+			// Фильтр по конкретному статусу
+			shouldShow = task.TaskStatus == status
+		}
+
+		if shouldShow {
+			fmt.Printf(
+				"\nЗадача:\n - id=%d;\n - описание=\"%s\";\n - статус=%s;\n - время создания=%s;\n - последнее обновление=%s\n",
+				task.Id,
+				task.Description,
+				task.TaskStatus,
+				time.Time(task.CreatedAt).Format(time.DateTime),
+				time.Time(task.UpdatedAt).Format(time.DateTime),
+			)
+		}
 	}
 }
 
