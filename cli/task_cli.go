@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"task_cli/util"
 	"time"
 )
@@ -23,6 +24,7 @@ type Task struct {
 type Id int
 type Description string
 type TaskStatus string
+
 type TaskStatuses struct {
 	Todo       TaskStatus
 	InProgress TaskStatus
@@ -40,10 +42,18 @@ const errorReadingFile = "Error reading file: "
 const errorMarshalling = "Error marshalling JSON: "
 const errorWritingToFile = "Error writing to file: "
 const errorFileInteraction = "Error reading from file: "
-const errorNoSuchTaskById = "There is no such task with id: "
-const errorFileNotFount = "File is not found"
+const errorNoSuchTaskById = "No task found with ID: "
+const errorFileNotFound = "File not found"
+const errorEmptyDescription = "Error: Task description cannot be empty"
+const errorInvalidId = "Error: ID must be a positive number"
 
 func AddTask(description Description) bool {
+	// Валидация: проверка на пустое описание
+	if strings.TrimSpace(string(description)) == "" {
+		fmt.Println(errorEmptyDescription)
+		return false
+	}
+
 	tasksFile := &TasksFile{Tasks: make([]Task, 0)}
 	tasksFile, err := readTasks()
 
@@ -84,6 +94,18 @@ func AddTask(description Description) bool {
 }
 
 func UpdateTask(id Id, newDescription Description) bool {
+	// Валидация ID
+	if id <= 0 {
+		fmt.Println(errorInvalidId)
+		return false
+	}
+
+	// Валидация описания
+	if strings.TrimSpace(string(newDescription)) == "" {
+		fmt.Println(errorEmptyDescription)
+		return false
+	}
+
 	tasksFile, err := readTasks()
 
 	if err != nil {
@@ -91,7 +113,7 @@ func UpdateTask(id Id, newDescription Description) bool {
 			fmt.Println(errorReadingFile, err)
 			return false
 		}
-		fmt.Println(errorFileNotFount)
+		fmt.Println(errorFileNotFound)
 		return false
 	}
 
@@ -123,6 +145,12 @@ func UpdateTask(id Id, newDescription Description) bool {
 }
 
 func DeleteTask(id Id) bool {
+	// Валидация ID
+	if id <= 0 {
+		fmt.Println(errorInvalidId)
+		return false
+	}
+
 	tasksFile, err := readTasks()
 
 	if err != nil {
@@ -130,13 +158,13 @@ func DeleteTask(id Id) bool {
 			fmt.Println(errorReadingFile, err)
 			return false
 		}
-		fmt.Println(errorFileNotFount)
+		fmt.Println(errorFileNotFound)
 		return false
 	}
 
 	tasksFile.deleteTaskById(id)
 
-	// Парсинг в JSON
+	// Сериализация в JSON
 	jsonTask, err := json.MarshalIndent(tasksFile, "", "  ")
 	if err != nil {
 		fmt.Println(errorMarshalling, err)
@@ -162,7 +190,7 @@ func MarkDone(id Id) bool {
 	return changeTaskStatus(id, Statuses.Done)
 }
 
-// GetTasks получает все задачи независимо от статуса
+// GetTasks retrieves tasks based on status filter
 func GetTasks(status TaskStatus) {
 	tasks, err := readTasks()
 	if err != nil {
@@ -170,6 +198,7 @@ func GetTasks(status TaskStatus) {
 		return
 	}
 
+	found := false
 	for _, task := range tasks.Tasks {
 		// Определяем, нужно ли показывать задачу
 		shouldShow := false
@@ -185,8 +214,9 @@ func GetTasks(status TaskStatus) {
 		}
 
 		if shouldShow {
+			found = true
 			fmt.Printf(
-				"\nЗадача:\n - id=%d;\n - описание=\"%s\";\n - статус=%s;\n - время создания=%s;\n - последнее обновление=%s\n",
+				"\nTask:\n - ID: %d\n - Description: \"%s\"\n - Status: %s\n - Created: %s\n - Updated: %s\n",
 				task.Id,
 				task.Description,
 				task.TaskStatus,
@@ -194,6 +224,10 @@ func GetTasks(status TaskStatus) {
 				time.Time(task.UpdatedAt).Format(time.DateTime),
 			)
 		}
+	}
+
+	if !found && status != "" {
+		fmt.Println("No tasks found matching the specified criteria.")
 	}
 }
 
@@ -250,6 +284,12 @@ func (taskList *TasksFile) deleteTaskById(id Id) {
 }
 
 func changeTaskStatus(id Id, newStatus TaskStatus) bool {
+	// Валидация ID
+	if id <= 0 {
+		fmt.Println(errorInvalidId)
+		return false
+	}
+
 	tasksFile, err := readTasks()
 
 	if err != nil {
@@ -257,7 +297,7 @@ func changeTaskStatus(id Id, newStatus TaskStatus) bool {
 			fmt.Println(errorReadingFile, err)
 			return false
 		}
-		fmt.Println(errorFileNotFount)
+		fmt.Println(errorFileNotFound)
 		return false
 	}
 
